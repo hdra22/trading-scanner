@@ -1,0 +1,13 @@
+# Runtime data (não commitar)
+scan_history.json
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Streamlit cache
+.streamlit/
+
+# IDEs
+.vscode/
+.idea/

@@ -1,0 +1,128 @@
+{
+  "telegram": {
+    "token": "8644647150:AAFfNFtmKEWaLBl4cCDohvlmhYfVl4F0Muc",
+    "chat_id": "776402509"
+  },
+  "watchlist": [
+    "PETR4.SA", "VALE3.SA", "ITUB4.SA", "BBDC4.SA",
+    "BTC-USD", "ETH-USD", "SOL-USD",
+    "EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "USDCHF=X", "USDCAD=X",
+    "AUDNZD=X", "AUDCAD=X", "AUDCHF=X", "AUDJPY=X", "CADJPY=X", "CHFJPY=X",
+    "EURAUD=X", "EURCAD=X", "EURCHF=X", "EURGBP=X", "EURJPY=X", "EURNZD=X",
+    "GBPCHF=X", "GBPJPY=X", "GBPAUD=X", "GBPCAD=X", "GBPNZD=X",
+    "NZDCAD=X", "NZDCHF=X", "NZDJPY=X", "NZDUSD=X",
+    "GC=F", "SI=F", "CL=F", "NG=F",
+    "^GDAXI", "^FTSE", "^GSPC", "^DJI", "^N225", "^AXJO", "000016.SS", "^FCHI", "^IBEX"
+  ],
+  "symbol_names": {
+    "PETR4.SA":  "PETR4 (Petrobras)",
+    "VALE3.SA":  "VALE3 (Vale)",
+    "ITUB4.SA":  "ITUB4 (Itaú)",
+    "BBDC4.SA":  "BBDC4 (Bradesco)",
+    "BTC-USD":   "Bitcoin (BTC/USD)",
+    "ETH-USD":   "Ethereum (ETH/USD)",
+    "SOL-USD":   "Solana (SOL/USD)",
+    "EURUSD=X":  "EUR/USD",
+    "GBPUSD=X":  "GBP/USD",
+    "USDJPY=X":  "USD/JPY",
+    "AUDUSD=X":  "AUD/USD",
+    "USDCHF=X":  "USD/CHF",
+    "USDCAD=X":  "USD/CAD",
+    "AUDNZD=X":  "AUD/NZD",
+    "AUDCAD=X":  "AUD/CAD",
+    "AUDCHF=X":  "AUD/CHF",
+    "AUDJPY=X":  "AUD/JPY",
+    "CADJPY=X":  "CAD/JPY",
+    "CHFJPY=X":  "CHF/JPY",
+    "EURAUD=X":  "EUR/AUD",
+    "EURCAD=X":  "EUR/CAD",
+    "EURCHF=X":  "EUR/CHF",
+    "EURGBP=X":  "EUR/GBP",
+    "EURJPY=X":  "EUR/JPY",
+    "EURNZD=X":  "EUR/NZD",
+    "GBPCHF=X":  "GBP/CHF",
+    "GBPJPY=X":  "GBP/JPY",
+    "GBPAUD=X":  "GBP/AUD",
+    "GBPCAD=X":  "GBP/CAD",
+    "GBPNZD=X":  "GBP/NZD",
+    "NZDCAD=X":  "NZD/CAD",
+    "NZDCHF=X":  "NZD/CHF",
+    "NZDJPY=X":  "NZD/JPY",
+    "NZDUSD=X":  "NZD/USD",
+    "GC=F":      "Ouro (XAU/USD)",
+    "SI=F":      "Prata (XAG/USD)",
+    "CL=F":      "Petróleo WTI",
+    "NG=F":      "Gás Natural",
+    "^GDAXI":    "DAX (DE30)",
+    "^FTSE":     "FTSE 100 (UK100)",
+    "^GSPC":     "S&P 500 (US500)",
+    "^DJI":      "Dow Jones (US30)",
+    "^N225":     "Nikkei 225 (JP225)",
+    "^AXJO":     "ASX 200 (AU200)",
+    "000016.SS": "SSE 50 (CN50)",
+    "^FCHI":     "CAC 40 (FR40)",
+    "^IBEX":     "IBEX 35"
+  },
+  "timeframes": ["4h", "1d"],
+  "filters": {
+    "min_score": 8,
+    "min_rr": 2.0
+  },
+  "classic_strategies": {
+    "rsi_oversold": {
+      "enabled": true,
+      "rsi_period": 14,
+      "rsi_long_threshold": 35,
+      "rsi_short_threshold": 65
+    },
+    "ema_pullback": {
+      "enabled": true,
+      "ema_fast": 21,
+      "ema_slow": 50,
+      "rsi_period": 14,
+      "proximity_pct": 1.5
+    },
+    "macd_cross": {
+      "enabled": true,
+      "fast": 12,
+      "slow": 26,
+      "signal": 9
+    }
+  },
+  "naked_forex_strategies": {
+    "kangaroo_tail": {
+      "enabled": true,
+      "zone_tolerance_pct": 0.5,
+      "min_tail_body_ratio": 2.0,
+      "min_room_to_left": 7
+    },
+    "big_shadow": {
+      "enabled": true,
+      "zone_tolerance_pct": 0.5,
+      "close_extremity_pct": 0.33,
+      "min_room_to_left": 7
+    },
+    "wammie_moolah": {
+      "enabled": true,
+      "zone_tolerance_pct": 0.5,
+      "min_candles_between_touches": 6
+    },
+    "big_belt": {
+      "enabled": true,
+      "zone_tolerance_pct": 0.5,
+      "close_extremity_pct": 0.25
+    },
+    "last_kiss": {
+      "enabled": true,
+      "zone_tolerance_pct": 0.5
+    },
+    "trendy_kangaroo": {
+      "enabled": true,
+      "zone_tolerance_pct": 0.5,
+      "min_tail_body_ratio": 2.0,
+      "min_pause_candles": 3,
+      "max_pause_candles": 12,
+      "max_consolidation_pct": 1.0
+    }
+  }
+}
