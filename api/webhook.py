@@ -1,19 +1,22 @@
 """
-Vercel serverless function — Telegram webhook handler.
+Vercel serverless function — Telegram webhook handler (Flask/WSGI).
 
 Receives Telegram updates and processes bot commands:
   /scan  — triggers the GitHub Actions scanner workflow
   /help  — shows available commands
 
-Required environment variables (set in Vercel project settings):
+Required Vercel environment variables:
   TELEGRAM_TOKEN   — bot token from @BotFather
   TELEGRAM_CHAT_ID — your personal chat ID (only this ID is accepted)
-  GITHUB_PAT       — fine-grained PAT with Actions: write + Contents: read
+  GITHUB_PAT       — fine-grained PAT with Actions: write scope
 """
-from http.server import BaseHTTPRequestHandler
 import json
 import os
-import requests  # available via requirements.txt
+
+import requests
+from flask import Flask, Response, request
+
+app = Flask(__name__)   # Vercel WSGI entry point
 
 GITHUB_REPO = "hdra22/trading-scanner"
 WORKFLOW    = "scanner.yml"
@@ -21,7 +24,6 @@ BRANCH      = "master"
 
 
 def _trigger_scan(github_pat: str) -> bool:
-    """Dispatch workflow_dispatch event on the scanner workflow."""
     r = requests.post(
         f"https://api.github.com/repos/{GITHUB_REPO}/actions/workflows/{WORKFLOW}/dispatches",
         headers={
@@ -36,7 +38,6 @@ def _trigger_scan(github_pat: str) -> bool:
 
 
 def _send(token: str, chat_id: str, text: str) -> None:
-    """Send a Telegram message (HTML parse mode)."""
     requests.post(
         f"https://api.telegram.org/bot{token}/sendMessage",
         json={"chat_id": chat_id, "text": text, "parse_mode": "HTML"},
@@ -44,68 +45,54 @@ def _send(token: str, chat_id: str, text: str) -> None:
     )
 
 
-class handler(BaseHTTPRequestHandler):
-    """Vercel Python runtime entry point."""
+@app.route("/", methods=["GET"])
+@app.route("/webhook", methods=["GET"])
+def health():
+    return "Trading Scanner Webhook — OK"
 
-    # ── health check ──────────────────────────────────────────────────────────
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Trading Scanner Webhook — OK")
 
-    # ── Telegram update ───────────────────────────────────────────────────────
-    def do_POST(self):
-        # Always respond 200 immediately so Telegram doesn't retry
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"OK")
+@app.route("/", methods=["POST"])
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    # Always return 200 immediately — Telegram stops retrying on 200
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+    except Exception:
+        return Response("OK", 200)
 
-        # Parse body
-        try:
-            length = int(self.headers.get("content-length", 0))
-            body   = json.loads(self.rfile.read(length) or b"{}")
-        except Exception:
-            return
+    token      = os.environ.get("TELEGRAM_TOKEN", "")
+    allowed_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+    github_pat = os.environ.get("GITHUB_PAT", "")
 
-        token      = os.environ.get("TELEGRAM_TOKEN", "")
-        allowed_id = os.environ.get("TELEGRAM_CHAT_ID", "")
-        github_pat = os.environ.get("GITHUB_PAT", "")
+    msg     = body.get("message", {})
+    text    = (msg.get("text") or "").strip()
+    chat_id = str(msg.get("chat", {}).get("id", ""))
 
-        msg     = body.get("message", {})
-        text    = (msg.get("text") or "").strip()
-        chat_id = str(msg.get("chat", {}).get("id", ""))
+    if not text or chat_id != allowed_id:
+        return Response("OK", 200)
 
-        # Ignore messages from other chats
-        if not text or chat_id != allowed_id:
-            return
-
-        # ── command router ───────────────────────────────────────────────────
-        if text.startswith("/scan"):
-            _send(token, chat_id, "⏳ A disparar scanner...")
-            if _trigger_scan(github_pat):
-                _send(
-                    token, chat_id,
-                    "✅ <b>Scanner em execução!</b>\n"
-                    "Resultados chegam em ~2 minutos via Telegram.",
-                )
-            else:
-                _send(token, chat_id, "❌ Erro ao disparar scanner. Verifica o GITHUB_PAT.")
-
-        elif text.startswith("/help") or text.startswith("/start"):
+    if text.startswith("/scan"):
+        _send(token, chat_id, "⏳ A disparar scanner...")
+        if _trigger_scan(github_pat):
             _send(
                 token, chat_id,
-                "🤖 <b>Trading Scanner Bot</b>\n\n"
-                "  /scan — dispara o scanner agora\n"
-                "  /help — mostra esta ajuda\n\n"
-                "⏰ <b>Automático:</b> 0h05, 4h05, 8h05, 12h05, 16h05, 20h05 (PT)\n"
-                "📊 Dashboard disponível no Streamlit Cloud.",
+                "✅ <b>Scanner em execução!</b>\n"
+                "Resultados chegam em ~2 minutos via Telegram.",
             )
-
         else:
-            _send(
-                token, chat_id,
-                "❓ Comando desconhecido. Usa /help para ver os comandos disponíveis.",
-            )
+            _send(token, chat_id, "❌ Erro ao disparar scanner. Verifica o GITHUB_PAT.")
 
-    def log_message(self, *args):
-        pass  # suppress default stderr logging
+    elif text.startswith("/help") or text.startswith("/start"):
+        _send(
+            token, chat_id,
+            "🤖 <b>Trading Scanner Bot</b>\n\n"
+            "  /scan — dispara o scanner agora\n"
+            "  /help — mostra esta ajuda\n\n"
+            "⏰ <b>Automático:</b> 0h05, 4h05, 8h05, 12h05, 16h05, 20h05 (PT)\n"
+            "📊 Dashboard disponível no Streamlit Cloud.",
+        )
+
+    else:
+        _send(token, chat_id, "❓ Comando desconhecido. Usa /help para ver os comandos disponíveis.")
+
+    return Response("OK", 200)
