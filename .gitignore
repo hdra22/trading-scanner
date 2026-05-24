@@ -1,5 +1,4 @@
-# Runtime data (não commitar)
-scan_history.json
+# Runtime data
 __pycache__/
 *.pyc
 *.pyo

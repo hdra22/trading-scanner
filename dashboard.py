@@ -1,10 +1,12 @@
 """
 Trading Scanner Dashboard — Streamlit
-Run: streamlit run dashboard.py
+Run locally: python -m streamlit run dashboard.py
+Cloud:       deploy to share.streamlit.io (reads scan_history.json from repo)
 """
 import subprocess
 import sys
 import os
+import requests as _req
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -13,6 +15,13 @@ import pandas as pd
 
 from results_store import load_history
 from notifier import _tv_url, _fmt_price
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Cloud detection — GITHUB_PAT is only set in Streamlit Cloud secrets
+# ─────────────────────────────────────────────────────────────────────────────
+GITHUB_PAT  = os.environ.get("GITHUB_PAT", "")
+GITHUB_REPO = "hdra22/trading-scanner"
+IS_CLOUD    = bool(GITHUB_PAT)      # True on Streamlit Cloud, False locally
 
 # ─────────────────────────────────────────────
 # Page setup
@@ -85,12 +94,30 @@ title_col.title("📊 Trading Scanner")
 with btn_col:
     bc1, bc2 = st.columns(2)
     if bc1.button("▶ Scan Now", use_container_width=True, type="primary"):
-        scanner_py = Path(__file__).parent / "scanner.py"
-        subprocess.Popen(
-            [sys.executable, "-X", "utf8", str(scanner_py)],
-            cwd=str(scanner_py.parent),
-        )
-        st.toast("⏳ Scan iniciado — clica em Refresh em ~25 segundos", icon="🚀")
+        if IS_CLOUD:
+            # Trigger GitHub Actions workflow_dispatch via API
+            r = _req.post(
+                f"https://api.github.com/repos/{GITHUB_REPO}/actions/workflows/scanner.yml/dispatches",
+                headers={
+                    "Authorization":        f"Bearer {GITHUB_PAT}",
+                    "Accept":               "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                },
+                json={"ref": "master"},
+                timeout=10,
+            )
+            if r.status_code == 204:
+                st.toast("✅ Scanner disparado! Resultados chegam em ~2 min.", icon="🚀")
+            else:
+                st.toast(f"❌ Erro ao disparar ({r.status_code})", icon="❌")
+        else:
+            # Local: run scanner subprocess
+            scanner_py = Path(__file__).parent / "scanner.py"
+            subprocess.Popen(
+                [sys.executable, "-X", "utf8", str(scanner_py)],
+                cwd=str(scanner_py.parent),
+            )
+            st.toast("⏳ Scan iniciado — clica em Refresh em ~25 segundos", icon="🚀")
     if bc2.button("🔄 Refresh", use_container_width=True):
         st.rerun()
 
