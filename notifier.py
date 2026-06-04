@@ -173,9 +173,12 @@ def send_scan_summary(telegram_cfg, results, timeframes, n_symbols, elapsed_seco
     )
     lines.append("")
 
+    SEP = "    <code>─────────────────────</code>"
+
     def _format_group(direction_dict):
         out = []
-        for (name, tf), setups in sorted(direction_dict.items()):
+        items = sorted(direction_dict.items())
+        for idx, ((name, tf), setups) in enumerate(items):
             # Deduplicate strategy names (preserve first occurrence)
             seen = {}
             for s in setups:
@@ -201,11 +204,22 @@ def send_scan_summary(telegram_cfg, results, timeframes, n_symbols, elapsed_seco
             tp_s    = _fmt_price(best["tp"])
 
             out.append(
-                f"  • <b>{name}</b> {tf} — {strats}  ⭐{max_score}/10  ⚖️1:{rr_str}{tv_link}"
+                f"  • <b>{name}</b>  {tf}  ⭐{max_score}/10  ⚖️1:{rr_str}"
             )
             out.append(
-                f"    ➤ <code>{entry_s}</code>  🛑 <code>{sl_s}</code>  🎯 <code>{tp_s}</code>"
+                f"    📌 {strats}{tv_link}"
             )
+            out.append(
+                f"    ▶ Entrada  <code>{entry_s}</code>"
+            )
+            out.append(
+                f"    🛑 SL      <code>{sl_s}</code>"
+            )
+            out.append(
+                f"    🎯 TP      <code>{tp_s}</code>"
+            )
+            if idx < len(items) - 1:
+                out.append(SEP)
         return out
 
     if longs:
