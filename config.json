@@ -4,7 +4,6 @@
     "chat_id": "776402509"
   },
   "watchlist": [
-    "PETR4.SA", "VALE3.SA", "ITUB4.SA", "BBDC4.SA",
     "BTC-USD", "ETH-USD", "SOL-USD",
     "EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "USDCHF=X", "USDCAD=X",
     "AUDNZD=X", "AUDCAD=X", "AUDCHF=X", "AUDJPY=X", "CADJPY=X", "CHFJPY=X",
@@ -15,10 +14,6 @@
     "^GDAXI", "^FTSE", "^GSPC", "^DJI", "^N225", "^AXJO", "000016.SS", "^FCHI", "^IBEX"
   ],
   "symbol_names": {
-    "PETR4.SA":  "PETR4 (Petrobras)",
-    "VALE3.SA":  "VALE3 (Vale)",
-    "ITUB4.SA":  "ITUB4 (Itaú)",
-    "BBDC4.SA":  "BBDC4 (Bradesco)",
     "BTC-USD":   "Bitcoin (BTC/USD)",
     "ETH-USD":   "Ethereum (ETH/USD)",
     "SOL-USD":   "Solana (SOL/USD)",
