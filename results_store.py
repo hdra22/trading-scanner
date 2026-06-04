@@ -4,6 +4,9 @@ Persists scan results to scan_history.json so the dashboard can read them.
 import json
 import os
 from datetime import datetime
+from zoneinfo import ZoneInfo
+
+_PT = ZoneInfo("Europe/Lisbon")
 
 _HERE         = os.path.dirname(os.path.abspath(__file__))
 RESULTS_FILE  = os.path.join(_HERE, "scan_history.json")
@@ -23,7 +26,7 @@ def save_scan(results, n_symbols, timeframes, elapsed, total_raw):
         })
 
     history.append({
-        "timestamp":      datetime.now().isoformat(),
+        "timestamp":      datetime.now(_PT).isoformat(),
         "n_symbols":      n_symbols,
         "timeframes":     list(timeframes),
         "elapsed":        round(float(elapsed), 1),

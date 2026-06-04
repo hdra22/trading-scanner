@@ -3,6 +3,9 @@ import json
 import sys
 import time
 from datetime import datetime
+from zoneinfo import ZoneInfo
+
+_PT = ZoneInfo("Europe/Lisbon")
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
@@ -63,7 +66,7 @@ def run_scan(config_path="config.json"):
     has_naked   = "naked_forex_strategies" in cfg
 
     print(f"\n{'='*60}")
-    print(f"  TRADING SCANNER  —  {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+    print(f"  TRADING SCANNER  —  {datetime.now(_PT).strftime('%d/%m/%Y %H:%M:%S')}")
     print(f"  Ativos: {len(watchlist)}  |  Timeframes: {', '.join(timeframes)}")
     print(f"{'='*60}")
 

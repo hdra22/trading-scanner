@@ -1,6 +1,9 @@
 import requests
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from collections import defaultdict
+
+_PT = ZoneInfo("Europe/Lisbon")
 
 
 MAX_CHARS = 3800  # Telegram limit is 4096; stay safe
@@ -123,7 +126,7 @@ def send_scan_summary(telegram_cfg, results, timeframes, n_symbols, elapsed_seco
     """
     token   = telegram_cfg["token"]
     chat_id = telegram_cfg["chat_id"]
-    now     = datetime.now()
+    now     = datetime.now(_PT)
 
     next_run = now.replace(minute=5, second=0, microsecond=0) + timedelta(hours=4)
 
