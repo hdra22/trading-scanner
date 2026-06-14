@@ -82,6 +82,12 @@
       "fast": 12,
       "slow": 26,
       "signal": 9
+    },
+    "fvg": {
+      "enabled": true,
+      "lookback": 100,
+      "min_impulse_mult": 1.5,
+      "min_gap_mult": 0.3
     }
   },
   "naked_forex_strategies": {

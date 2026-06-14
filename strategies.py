@@ -191,10 +191,186 @@ def check_macd_cross(df, cfg):
     }
 
 
+def check_fvg(df, cfg):
+    """
+    Fair Value Gap (FVG / Imbalance) — conceito ICT.
+
+    Padrão de 3 velas onde a vela do meio cria um desequilíbrio (gap)
+    entre a vela 1 e a vela 3. O preço tende a regressar para preencher
+    esse gap antes de continuar na direção do impulso.
+
+    Bullish FVG : low[i] > high[i-2]  →  gap abaixo do preço atual  → LONG
+    Bearish FVG : high[i] < low[i-2]  →  gap acima do preço atual   → SHORT
+
+    Condições de entrada:
+      1. FVG identificado nos últimos <lookback> candles.
+      2. Preço regresso ao interior do gap.
+      3. Candle de confirmação na direção do impulso original.
+      4. Impulso mínimo de <min_impulse_mult>x ATR (filtra gaps de ruído).
+      5. Dimensão mínima do gap de <min_gap_mult>x ATR.
+    """
+    lookback          = cfg.get("lookback", 50)
+    min_impulse_mult  = cfg.get("min_impulse_mult", 1.5)
+    min_gap_mult      = cfg.get("min_gap_mult", 0.3)
+
+    if len(df) < max(lookback, 20):
+        return None
+
+    highs  = df["High"].values
+    lows   = df["Low"].values
+    closes = df["Close"].values
+    opens  = df["Open"].values
+    n      = len(df)
+
+    # ATR para validar tamanho do impulso e do gap
+    try:
+        atr = ta.volatility.AverageTrueRange(
+            df["High"], df["Low"], df["Close"], window=14
+        ).average_true_range().iloc[-1]
+    except Exception:
+        return None
+    if pd.isna(atr) or atr <= 0:
+        return None
+
+    cur_high  = highs[-1]
+    cur_low   = lows[-1]
+    cur_close = closes[-1]
+    cur_open  = opens[-1]
+    cur_range = cur_high - cur_low
+
+    best_signal = None
+    best_score  = -1
+
+    # Janela de pesquisa: FVG formado entre (n-lookback) e (n-3)
+    # — i é a 3ª vela do padrão; deixamos pelo menos 1 barra entre o FVG e o candle atual
+    for i in range(max(2, n - lookback), n - 2):
+        h0, l0 = highs[i - 2], lows[i - 2]   # vela 1
+        h1, l1 = highs[i - 1], lows[i - 1]   # vela impulso
+        h2, l2 = highs[i],     lows[i]        # vela 3
+        impulse_size = h1 - l1
+
+        # ── Bullish FVG ─────────────────────────────────────────────────────
+        # Gap:  low[3] > high[1]  →  zona = [high[1] , low[3]]
+        if l2 > h0:
+            gap_low  = h0
+            gap_high = l2
+            gap_size = gap_high - gap_low
+
+            if impulse_size < min_impulse_mult * atr:
+                continue
+            if gap_size < min_gap_mult * atr:
+                continue
+            if closes[i - 1] <= opens[i - 1]:      # impulso deve ser bullish
+                continue
+
+            # Preço regressou ao interior do gap?
+            inside = (gap_low <= cur_low <= gap_high) or \
+                     (gap_low <= cur_close <= gap_high)
+            if not inside:
+                continue
+
+            # Confirmação: candle atual bullish, fecha na metade superior
+            if cur_range <= 0:
+                continue
+            if not (cur_close > cur_open and
+                    cur_close >= cur_low + cur_range * 0.5):
+                continue
+
+            impulse_ratio = impulse_size / atr
+            pq     = _pattern_quality(impulse_ratio, [1.5, 2.5, 4.0])
+            zones  = find_zones(df)
+            gap_mid = (gap_low + gap_high) / 2
+            sc     = score_setup(df, "LONG", gap_mid, pq)
+            rr_res = compute_rr(df, "LONG", gap_mid, zones)
+            if rr_res is None:
+                continue
+            entry, sl, tp, rr = rr_res
+
+            if sc > best_score:
+                best_score  = sc
+                best_signal = {
+                    "strategy":   "FVG Bullish",
+                    "signal":     "LONG",
+                    "price":      round(cur_close, 5),
+                    "fvg_low":    round(gap_low, 5),
+                    "fvg_high":   round(gap_high, 5),
+                    "score":      sc,
+                    "entry":      entry,
+                    "stop_loss":  sl,
+                    "take_profit": tp,
+                    "rr_ratio":   rr,
+                    "details": (
+                        f"FVG Bullish | Gap=[{round(gap_low, 4)}-{round(gap_high, 4)}] | "
+                        f"Impulso={round(impulse_ratio, 1)}x ATR | "
+                        f"Score={sc}/10 | R:R=1:{rr}"
+                    ),
+                }
+
+        # ── Bearish FVG ─────────────────────────────────────────────────────
+        # Gap:  high[3] < low[1]  →  zona = [high[3] , low[1]]
+        if h2 < l0:
+            gap_low  = h2
+            gap_high = l0
+            gap_size = gap_high - gap_low
+
+            if impulse_size < min_impulse_mult * atr:
+                continue
+            if gap_size < min_gap_mult * atr:
+                continue
+            if closes[i - 1] >= opens[i - 1]:      # impulso deve ser bearish
+                continue
+
+            # Preço regressou ao interior do gap?
+            inside = (gap_low <= cur_high <= gap_high) or \
+                     (gap_low <= cur_close <= gap_high)
+            if not inside:
+                continue
+
+            # Confirmação: candle atual bearish, fecha na metade inferior
+            if cur_range <= 0:
+                continue
+            if not (cur_close < cur_open and
+                    cur_close <= cur_low + cur_range * 0.5):
+                continue
+
+            impulse_ratio = impulse_size / atr
+            pq     = _pattern_quality(impulse_ratio, [1.5, 2.5, 4.0])
+            zones  = find_zones(df)
+            gap_mid = (gap_low + gap_high) / 2
+            sc     = score_setup(df, "SHORT", gap_mid, pq)
+            rr_res = compute_rr(df, "SHORT", gap_mid, zones)
+            if rr_res is None:
+                continue
+            entry, sl, tp, rr = rr_res
+
+            if sc > best_score:
+                best_score  = sc
+                best_signal = {
+                    "strategy":   "FVG Bearish",
+                    "signal":     "SHORT",
+                    "price":      round(cur_close, 5),
+                    "fvg_low":    round(gap_low, 5),
+                    "fvg_high":   round(gap_high, 5),
+                    "score":      sc,
+                    "entry":      entry,
+                    "stop_loss":  sl,
+                    "take_profit": tp,
+                    "rr_ratio":   rr,
+                    "details": (
+                        f"FVG Bearish | Gap=[{round(gap_low, 4)}-{round(gap_high, 4)}] | "
+                        f"Impulso={round(impulse_ratio, 1)}x ATR | "
+                        f"Score={sc}/10 | R:R=1:{rr}"
+                    ),
+                }
+
+    return best_signal
+
+
 _STRATEGY_MAP = {
     "rsi_oversold": check_rsi_oversold,
     "ema_pullback":  check_ema_pullback,
     "macd_cross":    check_macd_cross,
+    "fvg":           check_fvg,
 }
 
 
